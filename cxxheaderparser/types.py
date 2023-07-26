@@ -524,6 +524,8 @@ class Function:
     static: bool = False
     inline: bool = False
 
+    attributes: typing.List[str] = field(default_factory=list)
+
     #: If true, the body of the function is present
     has_body: bool = False
 
@@ -677,6 +679,8 @@ class Field:
 
     value: typing.Optional[Value] = None
     bits: typing.Optional[int] = None
+
+    attributes: typing.List[str] = field(default_factory=list)
 
     constexpr: bool = False
     mutable: bool = False

@@ -12,6 +12,7 @@ class ParsedTypeModifiers(typing.NamedTuple):
     vars: typing.Dict[str, LexToken]  # only found on variables
     both: typing.Dict[str, LexToken]  # found on either variables or functions
     meths: typing.Dict[str, LexToken]  # only found on methods
+    attrs: typing.List[str]
 
     def validate(self, *, var_ok: bool, meth_ok: bool, msg: str) -> None:
         # Almost there! Do any checks the caller asked for

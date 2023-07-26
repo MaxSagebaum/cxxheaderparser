@@ -303,7 +303,6 @@ class CxxParser:
             "using": self._parse_using,
             "{": self._on_empty_block_start,
             "}": self._on_block_end,
-            "DBL_LBRACKET": self._consume_attribute_specifier_seq,
             "PRECOMP_MACRO": self._process_preprocessor_token,
             ";": lambda _1, _2: None,
         }
@@ -714,15 +713,17 @@ class CxxParser:
     }
     _attribute_start_tokens |= _attribute_specifier_seq_start_types
 
-    def _consume_attribute(self, tok: LexToken) -> None:
+    def _consume_attribute(self, tok: LexToken) -> typing.List[str]:
         if tok.type == "__attribute__":
             self._consume_gcc_attribute(tok)
         elif tok.type == "__declspec":
             self._consume_declspec(tok)
         elif tok.type in self._attribute_specifier_seq_start_types:
-            self._consume_attribute_specifier_seq(tok)
+            return self._consume_attribute_specifier_seq(tok)
         else:
             raise CxxParseError("internal error")
+
+        return []
 
     def _consume_gcc_attribute(
         self, tok: LexToken, doxygen: typing.Optional[str] = None
@@ -737,9 +738,24 @@ class CxxParser:
         tok = self._next_token_must_be("(")
         self._consume_balanced_tokens(tok)
 
+    def _parse_attribute(
+        self
+    ) -> str:
+
+        tok = self._next_token_must_be("NAME")
+        attri = tok.value
+
+        tok = self.lex.token_if("(")
+        if not tok is None:
+            tokens = self._consume_balanced_tokens(tok)
+            attri += "(" + ''.join(map(lambda t : t.value, tokens)) + ")"
+
+        return attri
+
+
     def _consume_attribute_specifier_seq(
         self, tok: LexToken, doxygen: typing.Optional[str] = None
-    ) -> None:
+    ) -> typing.List[str]:
         """
         attribute_specifier_seq: attribute_specifier
                                | attribute_specifier_seq attribute_specifier
@@ -775,13 +791,13 @@ class CxxParser:
                       | token
         """
 
-        # TODO: retain the attributes and do something with them
-        # attrs = []
+        attrs = []
 
         while True:
             if tok.type == "DBL_LBRACKET":
-                tokens = self._consume_balanced_tokens(tok)
-                # attrs.append(Attribute(tokens))
+                while tok.type != "DBL_RBRACKET":
+                    attrs.append(self._parse_attribute())
+                    tok = self.lex.token()
             elif tok.type == "alignas":
                 next_tok = self._next_token_must_be("(")
                 tokens = self._consume_balanced_tokens(next_tok)
@@ -797,7 +813,7 @@ class CxxParser:
 
             tok = maybe_tok
 
-        # TODO return attrs
+        return attrs
 
     #
     # Using directive/declaration/typealias
@@ -1302,6 +1318,7 @@ class CxxParser:
                     value=default,
                     bits=bits,
                     doxygen=doxygen,
+                    attributes=mods.attrs,
                     **props,
                 )
                 self.visitor.on_class_field(class_state, f)
@@ -1828,6 +1845,7 @@ class CxxParser:
                     constructor=constructor,
                     destructor=destructor,
                     template=template,
+                    attributes=mods.attrs,
                     access=self._current_access,
                     **props,  # type: ignore
                 )
@@ -2068,6 +2086,7 @@ class CxxParser:
 
         const = False
         volatile = False
+        attributes = []
 
         # Modifiers that apply to the variable/function
         # -> key is name of modifier, value is a token so that we can emit an
@@ -2120,7 +2139,7 @@ class CxxParser:
             elif tok_type == "volatile":
                 volatile = True
             elif tok_type in _attribute_start:
-                self._consume_attribute(tok)
+                attributes.extend(self._consume_attribute(tok))
             else:
                 break
 
@@ -2137,7 +2156,7 @@ class CxxParser:
         self.lex.return_token(tok)
 
         # Always return the modifiers
-        mods = ParsedTypeModifiers(vars, both, meths)
+        mods = ParsedTypeModifiers(vars, both, meths, attributes)
         return parsed_type, mods
 
     def _parse_decl(
