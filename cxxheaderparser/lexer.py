@@ -618,6 +618,8 @@ class LexerTokenStream(TokenStream):
     Provides tokens from using PlyLexer on the given input text
     """
 
+    content: str
+
     _user_defined_literal_start = {
         "FLOAT_CONST",
         "HEX_FLOAT_CONST",
@@ -642,6 +644,7 @@ class LexerTokenStream(TokenStream):
     def __init__(self, filename: typing.Optional[str], content: str) -> None:
         self._lex = PlyLexer(filename)
         self._lex.input(content)
+        self.content = content
         self.tokbuf = typing.Deque[LexToken]()
 
     def _fill_tokbuf(self, tokbuf: typing.Deque[LexToken]) -> bool:
@@ -776,6 +779,9 @@ class LexerTokenStream(TokenStream):
             return comment_str
 
         return None
+
+    def get_content(self, start: LexToken, end: LexToken) -> str:
+        return self.content[start.lexpos:end.lexpos]
 
 
 class BoundedTokenStream(TokenStream):

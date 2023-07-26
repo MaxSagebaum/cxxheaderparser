@@ -1738,8 +1738,8 @@ class CxxParser:
                 if tok_value == ":":
                     self._discard_ctor_initializer()
                 elif tok_value == "{":
-                    self._discard_contents("{", "}")
-
+                    tokens = self._consume_balanced_tokens(tok)
+                    method.body = self.lex.get_content(tokens[0], tokens[-1])[1:-1] #''.join(map(lambda t: t.value, tokens[1:-1]))
                 break
 
             elif tok_value == "=":

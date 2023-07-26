@@ -528,6 +528,7 @@ class Function:
 
     #: If true, the body of the function is present
     has_body: bool = False
+    body: typing.Optional[str] = None
 
     #: True if function has a trailing return type (``auto foo() -> int``).
     #: In this case, the 'auto' return type is removed and replaced with
