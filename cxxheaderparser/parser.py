@@ -748,7 +748,7 @@ class CxxParser:
         tok = self.lex.token_if("(")
         if not tok is None:
             tokens = self._consume_balanced_tokens(tok)
-            attri += "(" + ''.join(map(lambda t : t.value, tokens)) + ")"
+            attri += ''.join(map(lambda t : t.value, tokens))
 
         return attri
 
